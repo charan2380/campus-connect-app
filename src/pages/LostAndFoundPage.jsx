@@ -7,10 +7,24 @@ import toast from 'react-hot-toast';
 import { Plus, Loader2, Tag, Info, Clock, Trash2, MessageCircle, ArrowLeft } from 'lucide-react';
 
 const ItemCard = ({ item, currentUserId, currentUserRole, onDelete, onContact }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this report? This action cannot be undone.")) {
+      return;
+    }
+    setIsDeleting(true);
+    await onDelete(item.id);
+  };
+
+  // --- THIS IS THE CORRECT, COMBINED LOGIC ---
   const isOwner = currentUserId === item.user_id;
   const isSuperAdmin = currentUserRole === 'super_admin';
   const canDelete = isOwner || isSuperAdmin;
+  
+  // The "Contact Owner" button should appear if the item is 'lost' AND the viewer is NOT the owner.
   const canContact = item.status === 'lost' && !isOwner;
+  // --- END OF CORRECTION ---
 
   return (
     <motion.div
@@ -22,13 +36,17 @@ const ItemCard = ({ item, currentUserId, currentUserRole, onDelete, onContact })
     >
       <div className="relative">
         <img className="h-48 w-full object-cover" src={item.image_url || 'https://via.placeholder.com/400x200?text=No+Image'} alt={item.item_name} />
+        
         {canDelete && (
           <motion.button
             whileHover={{ scale: 1.1, rotate: 5 }}
-            onClick={() => onDelete(item.id)}
-            className="absolute top-3 right-3 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-2 shadow-lg"
+            whileTap={{ scale: 0.9 }}
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="absolute top-3 right-3 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-2 shadow-lg backdrop-blur-sm disabled:bg-red-400"
+            aria-label="Delete item"
           >
-            <Trash2 className="h-5 w-5" />
+            {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
           </motion.button>
         )}
       </div>
@@ -48,9 +66,10 @@ const ItemCard = ({ item, currentUserId, currentUserRole, onDelete, onContact })
            Posted by {item.profile?.full_name || 'a user'} on {new Date(item.created_at).toLocaleDateString()}
         </div>
       </div>
+      
+      {/* --- THE "CONTACT OWNER" BUTTON IS NOW RESTORED --- */}
       {canContact && (
         <div className="p-4 bg-gray-50 border-t">
-            {/* --- THIS BUTTON NOW CALLS THE onContact HANDLER --- */}
             <motion.button 
                 onClick={() => onContact(item.user_id)}
                 whileHover={{ scale: 1.05 }}
@@ -61,10 +80,10 @@ const ItemCard = ({ item, currentUserId, currentUserRole, onDelete, onContact })
             </motion.button>
         </div>
       )}
+      {/* --- END OF RESTORATION --- */}
     </motion.div>
   );
 };
-
 
 function LostAndFoundPage() {
   const { getToken } = useAuth();
@@ -74,14 +93,13 @@ function LostAndFoundPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading]  = useState(true);
 
-  // --- THIS IS THE NEW CONTACT HANDLER ---
-  // It simply navigates to the messages page with the recipient's ID
+  // The handler to navigate to the messages page
   const handleContactOwner = (recipientId) => {
     navigate(`/messages/${recipientId}`);
   };
 
   const handleDeleteItem = async (itemId) => {
-    if (!window.confirm("Are you sure?")) return;
+    if (!window.confirm("Are you sure you want to delete this report?")) return;
     const toastId = toast.loading('Deleting item...');
     try {
       const supabase = await createClerkSupabaseClient(getToken);
@@ -90,6 +108,7 @@ function LostAndFoundPage() {
       setItems(currentItems => currentItems.filter(item => item.id !== itemId));
       toast.success('Item deleted successfully!', { id: toastId });
     } catch (error) {
+      console.error("Error deleting item:", error);
       toast.error('Failed to delete item.', { id: toastId });
     }
   };
@@ -98,10 +117,8 @@ function LostAndFoundPage() {
     const fetchItems = async () => {
       setLoading(true);
       const supabase = await createClerkSupabaseClient(getToken);
-      const { data, error } = await supabase
-        .from('lost_and_found_items')
-        .select('*, profile:profiles(full_name)')
-        .order('created_at', { ascending: false });
+      // Ensure we are fetching the profile for the owner's name
+      const { data, error } = await supabase.from('lost_and_found_items').select('*, profile:profiles(full_name)').order('created_at', { ascending: false });
       if (error) {
         console.error("Error fetching items:", error);
       } else {
@@ -126,7 +143,7 @@ function LostAndFoundPage() {
           <p className="mt-2 text-lg text-gray-600">Browse items reported across campus. Click to report a new item.</p>
         </div>
         <Link to="/report-item">
-          <motion.button whileHover={{ scale: 1.05 }}
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
             className="inline-flex items-center gap-2 bg-indigo-600 text-white font-semibold py-2 px-6 rounded-full shadow-lg hover:bg-indigo-700">
             <Plus className="h-5 w-5" />
             Report New Item
@@ -145,7 +162,7 @@ function LostAndFoundPage() {
                 currentUserId={user?.id}
                 currentUserRole={user?.publicMetadata?.role}
                 onDelete={handleDeleteItem}
-                onContact={handleContactOwner} // Pass the new handler
+                onContact={handleContactOwner} // Pass the contact handler
               />
             ))}
           </div>

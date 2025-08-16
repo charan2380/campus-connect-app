@@ -59,18 +59,86 @@ const ClubManagement = () => {
     const [clubAdmins, setClubAdmins] = useState([]);
     const [selectedAdmin, setSelectedAdmin] = useState('');
     const [loading, setLoading] = useState(false);
-    const fetchClubAdmins = useCallback(async () => { /* ... unchanged ... */ }, [getToken]);
-    useEffect(() => { fetchClubAdmins(); }, [fetchClubAdmins]);
-    const handleCreateClub = async (e) => { /* ... unchanged ... */ };
+    
+    // --- THIS IS THE CORRECTED DATA FETCHING LOGIC ---
+    useEffect(() => {
+        const fetchClubAdmins = async () => {
+            const supabase = await createClerkSupabaseClient(getToken);
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('user_id, full_name')
+                .eq('role', 'club_admin');
+            
+            if (error) {
+                toast.error("Could not fetch club admins.");
+                console.error("Fetch Club Admins Error:", error);
+            } else {
+                setClubAdmins(data);
+            }
+        };
+
+        // We only want to run this fetch if getToken is available.
+        if (getToken) {
+            fetchClubAdmins();
+        }
+    // The dependency array now correctly ensures this effect runs only when getToken changes.
+    }, [getToken]);
+    // --- END OF CORRECTION ---
+
+    const handleCreateClub = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        const toastId = toast.loading('Creating club...');
+        try {
+            const supabase = await createClerkSupabaseClient(getToken);
+            const { error } = await supabase.from('clubs').insert({
+                club_name: clubName,
+                club_admin_id: selectedAdmin || null,
+            });
+            if (error) throw error;
+            toast.success(`Club "${clubName}" created successfully!`, { id: toastId });
+            setClubName('');
+            setSelectedAdmin('');
+        } catch (error) {
+            toast.error(`Failed to create club: ${error.message}`, { id: toastId });
+        } finally {
+            setLoading(false);
+        }
+    };
+    
     return (
         <div className="bg-white p-8 rounded-xl shadow-lg">
-            <div className="flex items-center gap-4"><div className="bg-green-100 p-3 rounded-full"><Building className="h-6 w-6 text-green-600" /></div><div><h2 className="text-2xl font-bold text-gray-800">Create & Assign Club</h2><p className="text-gray-500">Create a new club and assign an admin to manage it.</p></div></div>
+            <div className="flex items-center gap-4">
+                <div className="bg-green-100 p-3 rounded-full"><Building className="h-6 w-6 text-green-600" /></div>
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-800">Create & Assign Club</h2>
+                    <p className="text-gray-500">Create a new club and assign an admin to manage it.</p>
+                </div>
+            </div>
             <form onSubmit={handleCreateClub} className="mt-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label htmlFor="clubName" className="block text-sm font-medium text-gray-700 mb-1">Club Name</label><input type="text" id="clubName" value={clubName} onChange={(e) => setClubName(e.target.value)} className="block w-full rounded-md border-gray-300 py-3 px-4 text-base focus:border-green-500" placeholder="e.g., Tech Club" required /></div>
-                    <div><label htmlFor="admin" className="block text-sm font-medium text-gray-700 mb-1">Assign Admin (Optional)</label><div className="relative"><div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><UserCheck className="h-5 w-5 text-gray-400" /></div><select id="admin" value={selectedAdmin} onChange={(e) => setSelectedAdmin(e.target.value)} className="block w-full appearance-none rounded-md border-gray-300 pl-10 pr-10 py-3 text-base focus:border-green-500"><option value="">Select an Admin</option>{clubAdmins.map(admin => (<option key={admin.user_id} value={admin.user_id}>{admin.full_name}</option>))}</select></div></div>
+                    <div>
+                        <label htmlFor="clubName" className="block text-sm font-medium text-gray-700 mb-1">Club Name</label>
+                        <input type="text" id="clubName" value={clubName} onChange={(e) => setClubName(e.target.value)} className="block w-full rounded-md border-gray-300 py-3 px-4 text-base focus:border-green-500" placeholder="e.g., Tech Club" required />
+                    </div>
+                    <div>
+                        <label htmlFor="admin" className="block text-sm font-medium text-gray-700 mb-1">Assign Admin (Optional)</label>
+                        <div className="relative">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><UserCheck className="h-5 w-5 text-gray-400" /></div>
+                            <select id="admin" value={selectedAdmin} onChange={(e) => setSelectedAdmin(e.target.value)} className="block w-full appearance-none rounded-md border-gray-300 pl-10 pr-10 py-3 text-base focus:border-green-500">
+                                <option value="">Select an Admin</option>
+                                {clubAdmins.map(admin => (
+                                    <option key={admin.user_id} value={admin.user_id}>{admin.full_name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex justify-end pt-4"><motion.button whileHover={{ scale: 1.05 }} type="submit" disabled={loading} className="inline-flex justify-center items-center gap-2 py-3 px-8 rounded-full text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400">{loading && <Spinner />} {loading ? 'Creating...' : 'Create Club'}</motion.button></div>
+                <div className="flex justify-end pt-4">
+                    <motion.button whileHover={{ scale: 1.05 }} type="submit" disabled={loading} className="inline-flex justify-center items-center gap-2 py-3 px-8 rounded-full text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400">
+                        {loading && <Spinner />} {loading ? 'Creating...' : 'Create Club'}
+                    </motion.button>
+                </div>
             </form>
         </div>
     );

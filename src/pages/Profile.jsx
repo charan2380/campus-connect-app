@@ -3,23 +3,15 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import createClerkSupabaseClient from '../supabaseClient';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Camera, Loader2, Sparkles } from 'lucide-react'; // Added Sparkles icon
+import { Camera, Loader2 } from 'lucide-react';
 import { StudentProfileFields } from '../components/profile/StudentProfileFields';
 import { HodProfileFields } from '../components/profile/HodProfileFields';
 import { SuperAdminProfileFields } from '../components/profile/SuperAdminProfileFields';
 
 const Spinner = () => <Loader2 className="animate-spin h-5 w-5 text-white" />;
 
-// We must export this for the child components to use it
 export const FileInputCard = ({ id, label, previewUrl, onFileChange }) => (
-  <div className="bg-gray-50 p-4 rounded-lg text-center border border-dashed">
-    <label htmlFor={id} className="cursor-pointer flex flex-col items-center">
-      {previewUrl ? (<img src={previewUrl} alt={`${label} Preview`} className="w-full h-32 object-contain rounded-md mb-2" />) : (<div className="w-full h-32 bg-gray-200 rounded-md mb-2 flex items-center justify-center"><Camera className="w-8 h-8 text-gray-400" /></div>)}
-      <span className="text-sm font-medium text-indigo-600 hover:text-indigo-500">{label}</span>
-      <span className="text-xs text-gray-500 mt-1">Click to upload</span>
-      <input id={id} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
-    </label>
-  </div>
+    <div className="bg-gray-50 p-4 rounded-lg text-center border border-dashed"><label htmlFor={id} className="cursor-pointer flex flex-col items-center">{previewUrl ? (<img src={previewUrl} alt={`${label} Preview`} className="w-full h-32 object-contain rounded-md mb-2" />) : (<div className="w-full h-32 bg-gray-200 rounded-md mb-2 flex items-center justify-center"><Camera className="w-8 h-8 text-gray-400" /></div>)}<span className="text-sm font-medium text-indigo-600 hover:text-indigo-500">{label}</span><span className="text-xs text-gray-500 mt-1">Click to upload</span><input id={id} type="file" accept="image/*" className="hidden" onChange={onFileChange} /></label></div>
 );
 
 function ProfilePage() {
@@ -38,6 +30,12 @@ function ProfilePage() {
 
   const userRole = user?.publicMetadata?.role;
 
+  // --- THIS IS THE NEW CENTRALIZED LIST OF DEPARTMENTS ---
+  const departmentOptions = [
+    "CAI", "CSE", "CST", "ECE", "ECT", "MECH", "CIVIL", "AIML", "CDS", "EEE"
+  ];
+  // --- END OF NEW LIST ---
+
   const sanitizeData = (data) => { const s = {}; for (const k in formData) { s[k] = data[k] || ''; } return s; };
   const loadProfile = useCallback(async () => {
     if (!user) return; setLoading(true);
@@ -53,7 +51,6 @@ function ProfilePage() {
     setLoading(false);
   }, [user, getToken]);
   useEffect(() => { loadProfile(); }, [loadProfile]);
-
   const handleFileChange = (setter, previewSetter) => (e) => { if (e.target.files?.[0]) { const file = e.target.files[0]; setter(file); previewSetter(URL.createObjectURL(file)); } };
   const uploadFile = async (supabase, file, bucket, userId) => {
     if (!file) return { data: null, error: null };
@@ -64,56 +61,32 @@ function ProfilePage() {
     return { data: { publicUrl: urlData.publicUrl }, error: null };
   };
   const handleInputChange = (e) => { setFormData({...formData, [e.target.name]: e.target.value}); };
-
-  // --- THIS IS THE NEW AI BIO GENERATOR FUNCTION ---
   const handleGenerateBio = async () => {
     setIsGeneratingBio(true);
     const toastId = toast.loading('Generating with AI...');
-
     try {
         let prompt;
-        if (formData.bio.trim()) {
-            // If bio exists, improve it
-            prompt = `Please rewrite this student profile bio to sound more professional and engaging, while keeping the core meaning. Make it a bit more concise and make it as a student perspective. Here is the original bio: "${formData.bio}"`;
-        } else {
-            // If bio is empty, generate a new one
-            prompt = `Generate a short, professional, and friendly student profile bio for a user named ${formData.full_name}, who is in Year ${formData.year} of the ${formData.department} department. The bio should be around 2-3 sentences.make it as a student perspective.`;
-        }
-
+        if (formData.bio.trim()) { prompt = `Rewrite this student bio to be more professional and engaging, keeping the core meaning: "${formData.bio}"`; }
+        else { prompt = `Generate a short, professional student profile bio for ${formData.full_name}, who is in Year ${formData.year} of the ${formData.department} department.`; }
         const token = await getToken({ template: 'supabase' });
-        const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-ai-chat`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ prompt }),
-            }
-        );
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-ai-chat`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ prompt }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to get a response.');
-
         setFormData({ ...formData, bio: data.text });
         toast.success("Bio updated with AI!", { id: toastId });
-
     } catch (error) {
         toast.error(`Error: ${error.message}`, { id: toastId });
     } finally {
         setIsGeneratingBio(false);
     }
   };
-  // --- END OF NEW FUNCTION ---
-
   const handleSubmit = async (e) => {
     e.preventDefault(); if (!user) return;
     setSaving(true);
     const promise = new Promise(async (resolve, reject) => {
       try {
         const supabase = await createClerkSupabaseClient(getToken);
-        const [avatarRes, collegeIdRes, busIdRes] = await Promise.all([
-            uploadFile(supabase, avatarFile, 'avatars', user.id),
-            uploadFile(supabase, collegeIdFile, 'college-ids', user.id),
-            uploadFile(supabase, busIdFile, 'bus-ids', user.id)
-        ]);
+        const [avatarRes, collegeIdRes, busIdRes] = await Promise.all([ uploadFile(supabase, avatarFile, 'avatars', user.id), uploadFile(supabase, collegeIdFile, 'college-ids', user.id), uploadFile(supabase, busIdFile, 'bus-ids', user.id) ]);
         if (avatarRes.error || collegeIdRes.error || busIdRes.error) { reject(new Error('Image upload failed.')); return; }
         const payload = { ...formData };
         payload.year = payload.year === '' || payload.year === null ? null : parseInt(payload.year, 10);
@@ -134,8 +107,8 @@ function ProfilePage() {
   };
 
   const renderFieldsByRole = () => {
-    // We pass the new AI handler down to the relevant components
-    const props = { formData, handleInputChange, handleFileChange, setCollegeIdFile, setCollegeIdPreview, setBusIdFile, setBusIdPreview, collegeIdPreview, busIdPreview, handleGenerateBio, isGeneratingBio };
+    // We now pass the departmentOptions list down to the child components
+    const props = { formData, handleInputChange, handleFileChange, setCollegeIdFile, setCollegeIdPreview, setBusIdFile, setBusIdPreview, collegeIdPreview, busIdPreview, handleGenerateBio, isGeneratingBio, departmentOptions };
     switch (userRole) {
       case 'hod':
         return <HodProfileFields {...props} />;

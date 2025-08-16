@@ -1,0 +1,110 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
+import createClerkSupabaseClient from '../supabaseClient';
+import { Loader2 } from 'lucide-react';
+
+function Dashboard() {
+  const { user } = useUser();
+  const { getToken } = useAuth();
+  const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+
+  const loadAndCreateProfile = useCallback(async () => {
+    if (!user || !getToken) return;
+
+    try {
+      setLoading(true);
+      const supabase = await createClerkSupabaseClient(getToken);
+
+      const { data: profileData, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError && fetchError.code === 'PGRST116') {
+        console.log("No profile found for this user. Creating one.");
+        
+        const roleFromMeta = user.publicMetadata?.role || 'student';
+
+        // --- THIS IS THE UPDATED INSERTION LOGIC ---
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            role: roleFromMeta,
+            full_name: user.fullName,
+            // 1. ADD THE EMAIL FIELD
+            // We get the primary email address directly from the Clerk user object.
+            email: user.primaryEmailAddress.emailAddress, 
+          })
+          .select()
+          .single();
+        // --- END OF UPDATE ---
+
+        if (insertError) {
+          console.error("Error creating profile:", insertError);
+          setProfile(null);
+        } else {
+          setProfile(newProfile);
+          console.log("Profile created successfully:", newProfile);
+        }
+      } else if (fetchError) {
+        console.error("An error occurred while fetching the profile:", fetchError);
+        setProfile(null);
+      } else {
+        setProfile(profileData);
+      }
+    } catch (e) {
+      console.error("An unexpected error occurred:", e);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, getToken]);
+
+  useEffect(() => {
+    loadAndCreateProfile();
+  }, [loadAndCreateProfile]);
+
+  useEffect(() => {
+    // This effect runs when the profile has been loaded or created
+    if (!loading && profile) {
+      switch (profile.role) {
+        case 'student':
+          navigate('/student-dashboard');
+          break;
+        case 'hod':
+          navigate('/hod-dashboard');
+          break;
+        case 'club_admin':
+          navigate('/club-admin-dashboard');
+          break;
+        case 'super_admin':
+          navigate('/super-admin-dashboard');
+          break;
+        default:
+          console.error('Unknown user role:', profile.role);
+          navigate('/'); // Redirect to home on error or unknown role
+      }
+    }
+    // Handle case where profile loading fails
+    if (!loading && !profile) {
+        console.error("Could not load or create a profile. Redirecting home.");
+        navigate('/');
+    }
+  }, [profile, loading, navigate]);
+
+  // While loading the profile and determining the role, show a full-screen loader.
+  return (
+    <div className="w-full h-[80vh] flex flex-col items-center justify-center bg-gray-50">
+      <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+      <p className="mt-4 text-lg text-gray-700">Signing in & Verifying Role...</p>
+    </div>
+  );
+}
+
+export default Dashboard;

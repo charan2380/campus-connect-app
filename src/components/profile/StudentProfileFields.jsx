@@ -9,32 +9,28 @@ export const StudentProfileFields = ({ formData, handleInputChange, departmentOp
           <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">Full Name</label>
           <input type="text" name="full_name" id="full_name" value={formData.full_name} onChange={handleInputChange} className="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm" />
         </div>
-        <div>
-          <label htmlFor="contact_info" className="block text-sm font-medium text-gray-700">Contact Number</label>
-          <input type="text" name="contact_info" id="contact_info" value={formData.contact_info} onChange={handleInputChange} className="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm" />
-        </div>
         
-        {/* --- THIS IS THE MODIFIED DEPARTMENT FIELD --- */}
+        {/* --- THIS IS THE NEW ROLL NUMBER FIELD --- */}
+        <div>
+          <label htmlFor="roll_no" className="block text-sm font-medium text-gray-700">Roll Number</label>
+          <input type="text" name="roll_no" id="roll_no" value={formData.roll_no} onChange={handleInputChange} className="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm" placeholder="e.g., 22A81A43B1" />
+        </div>
+        {/* --- END OF NEW FIELD --- */}
+
         <div>
           <label htmlFor="department" className="block text-sm font-medium text-gray-700">Department</label>
-          <select
-            name="department"
-            id="department"
-            value={formData.department}
-            onChange={handleInputChange}
-            className="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
+          <select name="department" id="department" value={formData.department} onChange={handleInputChange} className="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm">
             <option value="" disabled>Select your department</option>
-            {departmentOptions.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
+            {departmentOptions.map(dept => (<option key={dept} value={dept}>{dept}</option>))}
           </select>
         </div>
-        {/* --- END OF MODIFICATION --- */}
-        
         <div>
           <label htmlFor="year" className="block text-sm font-medium text-gray-700">Year</label>
           <input type="number" name="year" id="year" value={formData.year} onChange={handleInputChange} className="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm" />
+        </div>
+        <div>
+          <label htmlFor="contact_info" className="block text-sm font-medium text-gray-700">Contact Number</label>
+          <input type="text" name="contact_info" id="contact_info" value={formData.contact_info} onChange={handleInputChange} className="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm" />
         </div>
         
         <div className="sm:col-span-2">

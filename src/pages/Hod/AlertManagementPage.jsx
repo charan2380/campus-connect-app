@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import AlertManagement from '../../components/AlertManagement'; // Adjust path
 
-function SuperAdminAlertManagementPage() {
+function HodAlertManagementPage() {
   const navigate = useNavigate();
 
   return (
@@ -16,20 +16,18 @@ function SuperAdminAlertManagementPage() {
       </div>
       
       <div>
-        <h1 className="text-4xl font-bold text-gray-900">Manage Campus Alerts</h1>
-        <p className="mt-2 text-lg text-gray-600">
-          Create new alerts and manage all existing alerts on the platform.
-        </p>
+        <h1 className="text-4xl font-bold text-gray-900">Manage Your Alerts</h1>
+        <p className="mt-2 text-lg text-gray-600">Create new alerts and manage the ones you have posted.</p>
       </div>
 
       {/* 
-        We render the reusable component here, passing the `isAdminView` prop.
-        This tells the component to fetch ALL alerts, not just those
-        created by the current user.
+        We render the reusable component here.
+        The default `isAdminView` prop is `false`, which correctly
+        filters the list to show only the alerts created by the current HOD.
       */}
-      <AlertManagement isAdminView={true} />
+      <AlertManagement />
     </motion.div>
   );
 }
 
-export default SuperAdminAlertManagementPage;
+export default HodAlertManagementPage;

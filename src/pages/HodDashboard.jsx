@@ -1,8 +1,9 @@
 import { useUser } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { HeartPulse, MessageSquare, Users, Search, FileText, Rss } from 'lucide-react'; // Added Rss icon
+import { Link, useNavigate } from 'react-router-dom';
+import { HeartPulse, MessageSquare, Users, Search, FileText, Rss, Bell } from 'lucide-react';
 import AlertBanner from '../components/AlertBanner';
+// --- THE INCORRECT IMPORT OF A DELETED FILE HAS BEEN REMOVED ---
 
 // Reusable ActionCard component
 const ActionCard = ({ to, icon: Icon, title, description, color, index }) => {
@@ -36,23 +37,22 @@ const ActionCard = ({ to, icon: Icon, title, description, color, index }) => {
 
 function HodDashboard() {
   const { user } = useUser();
+  const navigate = useNavigate(); // Import and use navigate
 
   const hodActions = [
-    { to: "/hod/medication-requests", icon: HeartPulse, title: "Medication Requests", description: "Manage requests from your department.", color: "bg-red-500" },
-    { to: "/hod/view-feedback", icon: MessageSquare, title: "View Feedback", description: "Read feedback submitted by your students.", color: "bg-blue-500" },
-    { to: "/hod/student-directory", icon: Users, title: "Student Directory", description: "Browse and filter a directory of all students.", color: "bg-purple-500" },
+    { to: "/hod/medication-requests", icon: HeartPulse, title: "Medication Requests", description: "Manage student medication requests.", color: "bg-red-500" },
+    { to: "/hod/view-feedback", icon: MessageSquare, title: "View Feedback", description: "Read feedback from your students.", color: "bg-blue-500" },
+    { to: "/hod/student-directory", icon: Users, title: "Student Directory", description: "Browse and filter all student profiles.", color: "bg-purple-500" },
     { to: "/lost-and-found", icon: Search, title: "Lost & Found", description: "View all lost and found items on campus.", color: "bg-green-500" },
-    { to: "/notes", icon: FileText, title: "Notes & Papers", description: "View and contribute to the shared knowledge base.", color: "bg-yellow-500" },
-    // --- THIS IS THE NEW CARD, CORRECTLY IMPLEMENTED ---
-    { to: "/club-feed", icon: Rss, title: "Club Feed & Events", description: "View all club activities and event details across campus.", color: "bg-pink-500" },
+    { to: "/notes", icon: FileText, title: "Notes & Papers", description: "View and contribute to the knowledge base.", color: "bg-yellow-500" },
+    { to: "/club-feed", icon: Rss, title: "Club Feed & Events", description: "View all club activities on campus.", color: "bg-pink-500" },
   ];
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-8"
+      className="space-y-12"
     >
       <AlertBanner />
       <div>
@@ -65,11 +65,34 @@ function HodDashboard() {
       </div>
 
        <section>
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Tools</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Management Tools</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {hodActions.map((action, index) => (
             <ActionCard key={action.title} {...action} index={index} />
           ))}
+        </div>
+      </section>
+      
+      <section>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Communication Tools</h2>
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+             <div className="flex items-center gap-4 mb-4">
+                <div className="bg-yellow-100 p-3 rounded-full">
+                    <Bell className="h-6 w-6 text-yellow-600" />
+                </div>
+                <div>
+                    <h3 className="text-2xl font-bold text-gray-800">Manage Campus Alerts</h3>
+                    <p className="text-gray-500">Create new alerts or manage the ones you have posted.</p>
+                </div>
+            </div>
+            <div className="mt-4 text-right">
+                <button
+                    onClick={() => navigate('/hod/alert-management')}
+                    className="font-semibold text-indigo-600 hover:text-indigo-800"
+                >
+                    Go to Alert Management Page &rarr;
+                </button>
+            </div>
         </div>
       </section>
     </motion.div>

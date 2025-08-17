@@ -9,6 +9,7 @@ import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
 import ProfilePage from './pages/Profile';
 import Dashboard from './pages/Dashboard';
+import MessagesPage from './pages/MessagesPage';
 
 // Role-Specific Dashboards
 import StudentDashboard from './pages/StudentDashboard';
@@ -31,6 +32,7 @@ import MyFeedbackPage from './pages/MyFeedbackPage';
 import MedicationRequestsPage from './pages/Hod/MedicationRequestsPage';
 import HodViewFeedbackPage from './pages/Hod/ViewFeedbackPage';
 import StudentDirectoryPage from './pages/Hod/StudentDirectoryPage';
+import HodAlertManagementPage from './pages/Hod/AlertManagementPage'; // <-- IMPORT NEW HOD PAGE
 
 // Club Admin Pages
 import ManageEventsPage from './pages/ClubAdmin/ManageEventsPage';
@@ -42,10 +44,9 @@ import ClubAdminViewFeedbackPage from './pages/ClubAdmin/ViewFeedbackPage';
 // Super Admin Pages
 import SuperAdminViewFeedbackPage from './pages/SuperAdmin/ViewFeedbackPage';
 import UserManagementPage from './pages/SuperAdmin/UserManagementPage';
-import AlertManagementPage from './pages/SuperAdmin/AlertManagementPage'; // <-- IMPORT THE NEW PAGE
-import MessagesPage from './pages/MessagesPage';
+import AlertManagementPage from './pages/SuperAdmin/AlertManagementPage';
 
-// This component handles the logic for protected routes.
+
 const ProtectedRoute = ({ children }) => {
   return (
     <>
@@ -67,7 +68,6 @@ function App() {
           <Route path="/sign-in/*" element={<SignInPage />} />
           <Route path="/sign-up/*" element={<SignUpPage />} />
 
-          {/* This is the main entry point after login, which then redirects */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           
           {/* Role-Specific Dashboards */}
@@ -78,6 +78,7 @@ function App() {
           
           {/* Common Protected Routes */}
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/messages/:recipientId?" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
 
           {/* Student Feature Routes */}
           <Route path="/lost-and-found" element={<ProtectedRoute><LostAndFoundPage /></ProtectedRoute>} />
@@ -94,6 +95,7 @@ function App() {
           <Route path="/hod/medication-requests" element={<ProtectedRoute><MedicationRequestsPage /></ProtectedRoute>} />
           <Route path="/hod/view-feedback" element={<ProtectedRoute><HodViewFeedbackPage /></ProtectedRoute>} />
           <Route path="/hod/student-directory" element={<ProtectedRoute><StudentDirectoryPage /></ProtectedRoute>} />
+          <Route path="/hod/alert-management" element={<ProtectedRoute><HodAlertManagementPage /></ProtectedRoute>} /> {/* <-- NEW HOD ROUTE */}
 
           {/* Club Admin Feature Routes */}
           <Route path="/club-admin/manage-events" element={<ProtectedRoute><ManageEventsPage /></ProtectedRoute>} />
@@ -105,8 +107,7 @@ function App() {
           {/* Super Admin Feature Routes */}
           <Route path="/super-admin/view-feedback" element={<ProtectedRoute><SuperAdminViewFeedbackPage /></ProtectedRoute>} />
           <Route path="/super-admin/user-management" element={<ProtectedRoute><UserManagementPage /></ProtectedRoute>} />
-          <Route path="/super-admin/alert-management" element={<ProtectedRoute><AlertManagementPage /></ProtectedRoute>} /> {/* <-- THE NEW ROUTE */}
-          <Route path="/messages/:recipientId?" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+          <Route path="/super-admin/alert-management" element={<ProtectedRoute><AlertManagementPage /></ProtectedRoute>} />
           
         </Routes>
       </main>

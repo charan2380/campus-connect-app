@@ -1,3 +1,4 @@
+// 📂 src/pages/Dashboard.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
@@ -26,40 +27,34 @@ function Dashboard() {
         .single();
 
       if (fetchError && fetchError.code === 'PGRST116') {
-        console.log("No profile found for this user. Creating one.");
-        
+        console.log("No profile found. Creating a new one...");
         const roleFromMeta = user.publicMetadata?.role || 'student';
 
-        // --- THIS IS THE UPDATED INSERTION LOGIC ---
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
           .insert({
             user_id: user.id,
             role: roleFromMeta,
             full_name: user.fullName,
-            // 1. ADD THE EMAIL FIELD
-            // We get the primary email address directly from the Clerk user object.
-            email: user.primaryEmailAddress.emailAddress, 
+            email: user.primaryEmailAddress.emailAddress
           })
           .select()
           .single();
-        // --- END OF UPDATE ---
 
         if (insertError) {
           console.error("Error creating profile:", insertError);
           setProfile(null);
         } else {
           setProfile(newProfile);
-          console.log("Profile created successfully:", newProfile);
         }
       } else if (fetchError) {
-        console.error("An error occurred while fetching the profile:", fetchError);
+        console.error("Error fetching profile:", fetchError);
         setProfile(null);
       } else {
         setProfile(profileData);
       }
     } catch (e) {
-      console.error("An unexpected error occurred:", e);
+      console.error("Unexpected error:", e);
       setProfile(null);
     } finally {
       setLoading(false);
@@ -70,39 +65,65 @@ function Dashboard() {
     loadAndCreateProfile();
   }, [loadAndCreateProfile]);
 
-  useEffect(() => {
-    // This effect runs when the profile has been loaded or created
-    if (!loading && profile) {
-      switch (profile.role) {
-        case 'student':
-          navigate('/student-dashboard');
-          break;
-        case 'hod':
-          navigate('/hod-dashboard');
-          break;
-        case 'club_admin':
-          navigate('/club-admin-dashboard');
-          break;
-        case 'super_admin':
-          navigate('/super-admin-dashboard');
-          break;
-        default:
-          console.error('Unknown user role:', profile.role);
-          navigate('/'); // Redirect to home on error or unknown role
-      }
+useEffect(() => {
+  if (!loading && profile) {
+    let requiredFields = [];
+
+    switch (profile.role) {
+      case 'student':
+      case 'club_admin':
+        requiredFields = ['full_name', 'department', 'year', 'roll_no'];
+        break;
+      case 'hod':
+        requiredFields = ['full_name', 'department'];  // HOD doesn’t need year or roll_no
+        break;
+      case 'super_admin':
+        requiredFields = ['full_name'];  // Super Admin may need even fewer fields
+        break;
+      default:
+        requiredFields = ['full_name'];
     }
-    // Handle case where profile loading fails
-    if (!loading && !profile) {
-        console.error("Could not load or create a profile. Redirecting home.");
+
+    const isComplete = requiredFields.every(
+      (field) => profile[field] && profile[field].toString().trim() !== ''
+    );
+
+    if (!isComplete) {
+      navigate('/profile');
+      return;
+    }
+
+    // ✅ Route based on role after profile completion
+    switch (profile.role) {
+      case 'student':
+        navigate('/student-dashboard');
+        break;
+      case 'hod':
+        navigate('/hod-dashboard');
+        break;
+      case 'club_admin':
+        navigate('/club-admin-dashboard');
+        break;
+      case 'super_admin':
+        navigate('/super-admin-dashboard');
+        break;
+      default:
+        console.error('Unknown role:', profile.role);
         navigate('/');
     }
-  }, [profile, loading, navigate]);
+  }
 
-  // While loading the profile and determining the role, show a full-screen loader.
+  if (!loading && !profile) {
+    console.error("Could not load or create profile.");
+    navigate('/');
+  }
+}, [profile, loading, navigate]);
+
+
   return (
     <div className="w-full h-[80vh] flex flex-col items-center justify-center bg-gray-50">
       <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
-      <p className="mt-4 text-lg text-gray-700">Signing in & Verifying Role...</p>
+      <p className="mt-4 text-lg text-gray-700">Signing in & Verifying Profile...</p>
     </div>
   );
 }

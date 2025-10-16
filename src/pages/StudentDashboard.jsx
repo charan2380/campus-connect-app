@@ -1,4 +1,5 @@
-import { useUser } from '@clerk/clerk-react';
+import { useState, useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -6,14 +7,16 @@ import {
   Rss, MessageSquare, ListChecks, History,
 } from 'lucide-react';
 import AlertBanner from '../components/AlertBanner';
-import Chatbot from '../components/Chatbot'; // <-- 1. IMPORT THE NEW CHATBOT COMPONENT
+import Chatbot from '../components/Chatbot';
+import createClerkSupabaseClient from '../supabaseClient';
 
-// The ActionCard component is unchanged
+// Reusable ActionCard component for a consistent dashboard look and feel
 const ActionCard = ({ to, icon: Icon, title, description, color, index }) => {
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
-      opacity: 1, y: 0,
+      opacity: 1,
+      y: 0,
       transition: { delay: index * 0.05, duration: 0.3, ease: "easeOut" },
     },
   };
@@ -36,9 +39,31 @@ const ActionCard = ({ to, icon: Icon, title, description, color, index }) => {
   );
 };
 
-
 function StudentDashboard() {
   const { user } = useUser();
+  const { getToken } = useAuth();
+
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        const supabase = await createClerkSupabaseClient(getToken);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') { // Ignore error if profile not found yet
+          console.error("Error fetching user profile for dashboard:", error);
+        } else {
+          setUserProfile(data);
+        }
+      }
+    };
+    fetchProfile();
+  }, [user, getToken]);
 
   const actions = [
     { to: "/lost-and-found", icon: Search, title: "Lost & Found", description: "Browse reported lost and found items.", color: "bg-blue-500" },
@@ -52,7 +77,6 @@ function StudentDashboard() {
   ];
 
   return (
-    // We wrap the main div in a Fragment <> to allow a sibling component
     <>
       <motion.div
         initial={{ opacity: 0 }}
@@ -64,7 +88,7 @@ function StudentDashboard() {
         
         <div>
           <h1 className="text-4xl font-bold text-gray-900">
-            Welcome back, {user?.firstName || 'Student'}!
+            Welcome back, {userProfile?.full_name || user?.firstName || 'Student'}!
           </h1>
           <p className="mt-2 text-lg text-gray-600">
             This is your command center. What would you like to do today?
@@ -81,7 +105,6 @@ function StudentDashboard() {
         </section>
       </motion.div>
       
-      {/* --- 2. RENDER THE CHATBOT COMPONENT HERE --- */}
       <Chatbot />
     </>
   );

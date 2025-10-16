@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import createClerkSupabaseClient from '../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -11,6 +11,7 @@ const Spinner = () => <Loader2 className="animate-spin h-5 w-5 text-white" />;
 function EditEventPage() {
   const { eventId } = useParams();
   const { getToken } = useAuth();
+  const { user } = useUser(); // Get the stable user object from the hook
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -24,7 +25,6 @@ function EditEventPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch the existing event data to pre-fill the form
   const loadEventData = useCallback(async () => {
     setLoading(true);
     const supabase = await createClerkSupabaseClient(getToken);
@@ -36,12 +36,9 @@ function EditEventPage() {
 
     if (error) {
       toast.error("Could not load event data.");
-      console.error("Fetch Error:", error);
       navigate('/club-admin/manage-events');
     } else {
-      // Format the date for the datetime-local input
       const eventDate = new Date(data.event_date);
-      // Adjust for timezone offset before formatting
       eventDate.setMinutes(eventDate.getMinutes() - eventDate.getTimezoneOffset());
       const formattedDate = eventDate.toISOString().slice(0, 16);
 
@@ -74,25 +71,28 @@ function EditEventPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Add a safety check for the user object
+    if (!user) {
+        toast.error("User session not found. Please try again.");
+        return;
+    }
     setSubmitting(true);
     const toastId = toast.loading('Updating event post...');
 
     try {
       const supabase = await createClerkSupabaseClient(getToken);
-      let posterUrl = posterPreview; // Start with the existing URL
+      let posterUrl = posterPreview;
 
-      // 1. If a new file was selected, upload it
       if (posterFile) {
-        // We need the user id for the file path
-        const { data: { user } } = await supabase.auth.getUser();
+        // Use the stable user object from the hook
         const filePath = `${user.id}/${Date.now()}-${posterFile.name}`;
         const { error: uploadError } = await supabase.storage.from('event-posters').upload(filePath, posterFile, { upsert: true });
         if (uploadError) throw new Error(`Poster Upload Failed: ${uploadError.message}`);
+        
         const { data: urlData } = supabase.storage.from('event-posters').getPublicUrl(filePath);
         posterUrl = urlData.publicUrl;
       }
 
-      // 2. Prepare the data and UPDATE the record in the database
       const { error: updateError } = await supabase
         .from('club_posts')
         .update({
@@ -147,7 +147,7 @@ function EditEventPage() {
             </div>
             <div className="md:col-span-2">
               <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea name="description" id="description" value={formData.description} onChange={handleInputChange} required rows="6" className="mt-1 block w-full p-3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+              <textarea name="description" id="description" value={formData.description} onChange={handleInputChange} required rows="6" className="mt-1 block w-full p-3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
             </div>
              <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Event Poster</label>
@@ -167,8 +167,8 @@ function EditEventPage() {
           </div>
 
           <div className="pt-4 flex justify-end">
-            <motion.button type="submit" disabled={submitting} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-              className="inline-flex justify-center items-center gap-2 py-3 px-8 border border-transparent shadow-sm text-base font-medium rounded-full text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:bg-indigo-300">
+            <motion.button type="submit" disabled={submitting} whileHover={{ scale: 1.05 }}
+              className="inline-flex justify-center items-center gap-2 py-3 px-8 border border-transparent shadow-sm text-base font-medium rounded-full text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300">
               {submitting ? <Spinner /> : 'Save Changes'}
             </motion.button>
           </div>

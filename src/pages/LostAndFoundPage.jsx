@@ -4,8 +4,9 @@ import createClerkSupabaseClient from '../supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Plus, Loader2, Tag, Info, Clock, Trash2, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Plus, Loader2, Tag, Info, Trash2, MessageCircle, ArrowLeft } from 'lucide-react';
 
+// ------------------- ITEM CARD COMPONENT -------------------
 const ItemCard = ({ item, currentUserId, currentUserRole, onDelete, onContact }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -17,14 +18,10 @@ const ItemCard = ({ item, currentUserId, currentUserRole, onDelete, onContact })
     await onDelete(item.id);
   };
 
-  // --- THIS IS THE CORRECT, COMBINED LOGIC ---
   const isOwner = currentUserId === item.user_id;
   const isSuperAdmin = currentUserRole === 'super_admin';
   const canDelete = isOwner || isSuperAdmin;
-  
-  // The "Contact Owner" button should appear if the item is 'lost' AND the viewer is NOT the owner.
   const canContact = item.status === 'lost' && !isOwner;
-  // --- END OF CORRECTION ---
 
   return (
     <motion.div
@@ -35,8 +32,11 @@ const ItemCard = ({ item, currentUserId, currentUserRole, onDelete, onContact })
       className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col"
     >
       <div className="relative">
-        <img className="h-48 w-full object-cover" src={item.image_url || 'https://via.placeholder.com/400x200?text=No+Image'} alt={item.item_name} />
-        
+        <img
+          className="h-48 w-full object-cover"
+          src={item.image_url || 'https://via.placeholder.com/400x200?text=No+Image'}
+          alt={item.item_name}
+        />
         {canDelete && (
           <motion.button
             whileHover={{ scale: 1.1, rotate: 5 }}
@@ -63,37 +63,36 @@ const ItemCard = ({ item, currentUserId, currentUserRole, onDelete, onContact })
           </p>
         </div>
         <div className="border-t pt-4 mt-4 text-xs text-gray-500">
-           Posted by {item.profile?.full_name || 'a user'} on {new Date(item.created_at).toLocaleDateString()}
+          {/* ✅ SHOW BOTH NAME AND ROLL NUMBER */}
+          Posted by {item.profile?.full_name || 'a user'} {item.profile?.roll_no ? `(${item.profile.roll_no})` : ''} on {new Date(item.created_at).toLocaleDateString()}
         </div>
       </div>
-      
-      {/* --- THE "CONTACT OWNER" BUTTON IS NOW RESTORED --- */}
+
       {canContact && (
         <div className="p-4 bg-gray-50 border-t">
-            <motion.button 
-                onClick={() => onContact(item.user_id)}
-                whileHover={{ scale: 1.05 }}
-                className="w-full inline-flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-full shadow-md hover:bg-indigo-700"
-            >
-                <MessageCircle className="h-5 w-5"/>
-                Contact Owner
-            </motion.button>
+          <motion.button
+            onClick={() => onContact(item.user_id)}
+            whileHover={{ scale: 1.05 }}
+            className="w-full inline-flex justify-center items-center gap-2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-full shadow-md hover:bg-indigo-700"
+          >
+            <MessageCircle className="h-5 w-5" />
+            Contact Owner
+          </motion.button>
         </div>
       )}
-      {/* --- END OF RESTORATION --- */}
     </motion.div>
   );
 };
 
+// ------------------- LOST AND FOUND PAGE -------------------
 function LostAndFoundPage() {
   const { getToken } = useAuth();
   const { user } = useUser();
   const navigate = useNavigate();
 
   const [items, setItems] = useState([]);
-  const [loading, setLoading]  = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // The handler to navigate to the messages page
   const handleContactOwner = (recipientId) => {
     navigate(`/messages/${recipientId}`);
   };
@@ -117,8 +116,11 @@ function LostAndFoundPage() {
     const fetchItems = async () => {
       setLoading(true);
       const supabase = await createClerkSupabaseClient(getToken);
-      // Ensure we are fetching the profile for the owner's name
-      const { data, error } = await supabase.from('lost_and_found_items').select('*, profile:profiles(full_name)').order('created_at', { ascending: false });
+      // ✅ JOIN WITH PROFILES TO GET full_name AND roll_no
+      const { data, error } = await supabase
+        .from('lost_and_found_items')
+        .select('*, profile:profiles(full_name, roll_no)')
+        .order('created_at', { ascending: false });
       if (error) {
         console.error("Error fetching items:", error);
       } else {
@@ -156,13 +158,13 @@ function LostAndFoundPage() {
         <AnimatePresence>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {items.map(item => (
-              <ItemCard 
-                key={item.id} 
-                item={item} 
+              <ItemCard
+                key={item.id}
+                item={item}
                 currentUserId={user?.id}
                 currentUserRole={user?.publicMetadata?.role}
                 onDelete={handleDeleteItem}
-                onContact={handleContactOwner} // Pass the contact handler
+                onContact={handleContactOwner}
               />
             ))}
           </div>

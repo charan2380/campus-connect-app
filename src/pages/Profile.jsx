@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import createClerkSupabaseClient from '../supabaseClient';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -10,12 +11,16 @@ import { SuperAdminProfileFields } from '../components/profile/SuperAdminProfile
 
 const Spinner = () => <Loader2 className="animate-spin h-5 w-5 text-white" />;
 
-// We export this for the child components to use it.
+// File Input Card component
 export const FileInputCard = ({ id, label, previewUrl, onFileChange }) => (
     <div className="bg-gray-50 p-4 rounded-lg text-center border border-dashed">
         <label htmlFor={id} className="cursor-pointer flex flex-col items-center">
             {previewUrl ? (
-                <img src={previewUrl} alt={`${label} Preview`} className="w-full h-32 object-contain rounded-md mb-2" />
+                <img
+                    src={previewUrl}
+                    alt={`${label} Preview`}
+                    className="w-full h-32 object-contain rounded-md mb-2"
+                />
             ) : (
                 <div className="w-full h-32 bg-gray-200 rounded-md mb-2 flex items-center justify-center">
                     <Camera className="w-8 h-8 text-gray-400" />
@@ -31,6 +36,7 @@ export const FileInputCard = ({ id, label, previewUrl, onFileChange }) => (
 function ProfilePage() {
     const { user } = useUser();
     const { getToken } = useAuth();
+    const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
         full_name: '',
@@ -41,7 +47,7 @@ function ProfilePage() {
         avatar_url: '',
         college_id_url: '',
         bus_id_url: '',
-        roll_no: '', // Added roll_no to state
+        roll_no: '',
     });
 
     const [loading, setLoading] = useState(true);
@@ -56,11 +62,9 @@ function ProfilePage() {
 
     const userRole = user?.publicMetadata?.role;
 
-    const departmentOptions = [
-        "CAI", "CSE", "CST", "ECE", "ECT", "MECH", "CIVIL", "AIML", "CDS", "EEE"
-    ];
+    const departmentOptions = ["CAI", "CSE", "CST", "ECE", "ECT", "MECH", "CIVIL", "AIML", "CDS", "EEE"];
+    const yearOptions = [1, 2, 3, 4];
 
-    // Helper to ensure all fields in state have a default value (prevents uncontrolled->controlled error)
     const sanitizeData = (data) => {
         const sanitized = {};
         for (const key in formData) {
@@ -82,7 +86,7 @@ function ProfilePage() {
             setBusIdPreview(sanitized.bus_id_url);
         }
         setLoading(false);
-    }, [user, getToken]); // Removed formData from deps to prevent re-fetch loop
+    }, [user, getToken]);
 
     useEffect(() => {
         loadProfile();
@@ -139,6 +143,23 @@ function ProfilePage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!user) return;
+
+        // ✅ Role-based required fields
+        const requiredFieldsByRole = {
+            student: ['full_name', 'department', 'year', 'roll_no'],
+            club_admin: ['full_name', 'department', 'year', 'roll_no'],
+            hod: ['full_name', 'department'],
+            super_admin: ['full_name'],
+        };
+        const requiredFields = requiredFieldsByRole[userRole] || ['full_name'];
+
+        for (const field of requiredFields) {
+            if (!formData[field] || formData[field].toString().trim() === '') {
+                toast.error(`Please fill the ${field.replace('_', ' ')} field.`);
+                return;
+            }
+        }
+
         setSaving(true);
         const promise = new Promise(async (resolve, reject) => {
             try {
@@ -167,6 +188,24 @@ function ProfilePage() {
                 } else {
                     resolve("Profile updated!");
                     loadProfile();
+
+                    // ✅ Redirect to dashboard after successful profile completion
+                    switch (userRole) {
+                        case 'student':
+                            navigate('/student-dashboard');
+                            break;
+                        case 'hod':
+                            navigate('/hod-dashboard');
+                            break;
+                        case 'club_admin':
+                            navigate('/club-admin-dashboard');
+                            break;
+                        case 'super_admin':
+                            navigate('/super-admin-dashboard');
+                            break;
+                        default:
+                            navigate('/');
+                    }
                 }
             } catch (error) {
                 reject(error);
@@ -191,6 +230,7 @@ function ProfilePage() {
             formData,
             handleInputChange,
             departmentOptions,
+            yearOptions,
             handleFileChange,
             setCollegeIdFile,
             setCollegeIdPreview,
@@ -221,16 +261,36 @@ function ProfilePage() {
             <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg">
                 <div className="md:grid md:grid-cols-3 md:gap-8">
                     <div className="flex flex-col items-center md:items-start">
-                        <img src={avatarPreview || `https://ui-avatars.com/api/?name=${formData.full_name || 'U'}`} alt="Avatar" className="w-40 h-40 rounded-full object-cover mb-4 border-4 border-gray-200" />
-                        <label htmlFor="avatar-upload" className="cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg">Change Photo</label>
-                        <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange(setAvatarFile, setAvatarPreview)} />
+                        <img
+                            src={avatarPreview || `https://ui-avatars.com/api/?name=${formData.full_name || 'U'}`}
+                            alt="Avatar"
+                            className="w-40 h-40 rounded-full object-cover mb-4 border-4 border-gray-200"
+                        />
+                        <label
+                            htmlFor="avatar-upload"
+                            className="cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg"
+                        >
+                            Change Photo
+                        </label>
+                        <input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleFileChange(setAvatarFile, setAvatarPreview)}
+                        />
                     </div>
                     <div className="md:col-span-2 mt-8 md:mt-0">
                         {renderFieldsByRole()}
                     </div>
                 </div>
                 <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end">
-                    <motion.button type="submit" disabled={saving} whileHover={{ scale: 1.05 }} className="inline-flex justify-center items-center gap-2 py-2 px-6 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300">
+                    <motion.button
+                        type="submit"
+                        disabled={saving}
+                        whileHover={{ scale: 1.05 }}
+                        className="inline-flex justify-center items-center gap-2 py-2 px-6 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
+                    >
                         {saving && <Spinner />}
                         {saving ? 'Saving...' : 'Save Changes'}
                     </motion.button>

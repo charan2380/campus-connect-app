@@ -2,27 +2,21 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Zap, Users, Bell, MessageSquare, BookOpen, MapPin } from 'lucide-react';
 
-// --- FEATURE CARD WITH VERY SUBTLE ANIMATIONS ---
+// --- FEATURE CARD COMPONENT (Unchanged) ---
 const FeatureCard = ({ icon: Icon, title, description, index }) => {
   const cardVariants = {
     hidden: { opacity: 0, y: 15 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { delay: index * 0.1, duration: 0.3, ease: 'easeOut' },
-    },
+    visible: { opacity: 1, y: 0, transition: { delay: index * 0.1, duration: 0.3, ease: 'easeOut' } },
   };
-
   return (
     <motion.div
       variants={cardVariants}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true }}
-      // Simplified hover effect: just a gentle lift
       whileHover={{ y: -4 }}
       transition={{ ease: "easeInOut", duration: 0.2 }}
-      className="bg-white p-8 rounded-xl shadow-md h-full" // Reduced shadow
+      className="bg-white p-8 rounded-xl shadow-md h-full"
     >
       <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-50 text-indigo-600 mb-5">
         <Icon className="h-6 w-6" />
@@ -32,52 +26,62 @@ const FeatureCard = ({ icon: Icon, title, description, index }) => {
     </motion.div>
   );
 };
-// --- END OF MODIFIED COMPONENT ---
 
-
+// --- MAIN HOME PAGE COMPONENT ---
 function HomePage() {
   const features = [
-    { icon: Zap, title: "Centralized Hub", description: "One platform for all campus communication, replacing disparate systems and email chains." },
-    { icon: Bell, title: "Instant Alerts", description: "Receive campus-wide alerts and important notifications directly on your portal." },
-    { icon: Users, title: "Club & Event Hub", description: "Discover clubs, register for events, and stay connected with campus life." },
-    { icon: BookOpen, title: "Shared Knowledge", description: "Access and share notes, past papers, and academic resources with fellow students." },
-    { icon: MessageSquare, title: "Direct Chat", description: "Initiate one-on-one chats with any user on the platform for quick communication." },
-    { icon: MapPin, title: "Campus Services", description: "Find lost items, request medication, and discover local room rentals all in one place." },
+    { icon: Zap, title: "Centralized Hub", description: "One platform for all campus communication and activities." },
+    { icon: Bell, title: "Instant Alerts", description: "Receive important campus-wide notifications directly to your portal." },
+    { icon: Users, title: "Club & Event Hub", description: "Discover clubs, register for events, and stay connected." },
+    { icon: BookOpen, title: "Shared Knowledge", description: "Access and share academic resources with fellow students." },
+    { icon: MessageSquare, title: "Direct Chat", description: "Initiate one-on-one chats for quick and private communication." },
+    { icon: MapPin, title: "Campus Services", description: "Find lost items, request medication, and discover local room rentals." },
   ];
 
   return (
-    <div className="space-y-24 md:space-y-32 pb-20">
-      
-      {/* --- NEW SIMPLE, CENTERED HERO SECTION (NO PHOTO) --- */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center container mx-auto pt-16"
-      >
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tighter text-gray-900">
-          The Unified Campus
-          <span className="block text-indigo-600 mt-2">Operating System</span>
-        </h1>
-        <p className="mt-6 text-lg max-w-2xl mx-auto leading-8 text-gray-600">
-          CampusConnect integrates every aspect of student life into a single, streamlined digital hub. Say goodbye to confusion and hello to efficiency.
-        </p>
-        <div className="mt-10 flex items-center justify-center">
+    <div className="bg-gray-50">
+      {/* --- HERO SECTION WITH CORRECTED RESPONSIVE STYLING --- */}
+      <div className="relative bg-slate-900">
+        <div className="absolute inset-0">
+          <img
+            className="h-full w-full object-cover"
+            src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop"
+            alt="College campus"
+          />
+          <div className="absolute inset-0 bg-slate-900/70 mix-blend-multiply" aria-hidden="true" />
+        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+          className="relative mx-auto max-w-4xl py-20 px-6 text-center sm:py-24 lg:py-32"
+        >
+          {/* --- THIS IS THE CORRECTED HEADLINE --- */}
+          {/* Default is text-3xl, scales up for sm, md, and lg screens */}
+          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
+            Welcome to <span className="text-indigo-400">CampusConnect</span>
+          </h1>
+          {/* --- END OF CORRECTION --- */}
+          <p className="mt-4 max-w-3xl mx-auto text-lg text-indigo-100 sm:mt-6 sm:text-xl">
+            Your unified campus operating system. All your college needs, integrated into a single, streamlined digital hub.
+          </p>
+          <div className="mt-8 sm:mt-10">
             <Link
               to="/sign-up"
-              className="rounded-full bg-indigo-600 px-8 py-3 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-300"
+              className="rounded-full bg-indigo-600 px-8 py-3 text-base font-semibold text-white shadow-lg hover:bg-indigo-500 transition-colors duration-300"
             >
-              Get Started
+              Get Started Now
             </Link>
-        </div>
-      </motion.section>
+          </div>
+        </motion.div>
+      </div>
       {/* --- END OF HERO SECTION --- */}
 
-
-      {/* Features Section */}
-      <section className="container mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold tracking-tight text-gray-900">Everything You Need, All In One Place</h2>
+      <section className="container mx-auto py-20 px-4 sm:py-24">
+        <div className="text-center mb-12 sm:mb-16">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything You Need, <span className="text-indigo-600">All In One Place</span>
+          </h2>
           <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">
             From academics to social life, CampusConnect has you covered with a suite of powerful, integrated tools.
           </p>
@@ -89,6 +93,22 @@ function HomePage() {
         </div>
       </section>
 
+       <section className="bg-white">
+        <div className="mx-auto max-w-4xl py-16 px-6 text-center sm:py-20">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Ready to streamline your campus life?
+          </h2>
+          <p className="mt-4 text-lg leading-6 text-gray-600">
+            Join your peers and experience a more connected and efficient campus today.
+          </p>
+          <Link
+            to="/sign-up"
+            className="mt-8 inline-flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700 sm:w-auto"
+          >
+            Create Your Account
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

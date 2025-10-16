@@ -1,10 +1,12 @@
-import { useUser } from '@clerk/clerk-react';
+import { useState, useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ClipboardList, PlusCircle, MessageSquare } from 'lucide-react';
-import AlertBanner from '../components/AlertBanner'; // <-- IMPORT THE NEW COMPONENT
+import AlertBanner from '../components/AlertBanner';
+import createClerkSupabaseClient from '../supabaseClient';
 
-// Reusable ActionCard component for a consistent dashboard look and feel
+// Reusable ActionCard component
 const ActionCard = ({ to, icon: Icon, title, description, color, index }) => {
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -36,6 +38,31 @@ const ActionCard = ({ to, icon: Icon, title, description, color, index }) => {
 
 function ClubAdminDashboard() {
   const { user } = useUser();
+  const { getToken } = useAuth();
+
+  // --- THIS IS THE NEW LOGIC TO FETCH THE CLUB ADMIN's NAME ---
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        const supabase = await createClerkSupabaseClient(getToken);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error fetching Club Admin profile for dashboard:", error);
+        } else {
+          setUserProfile(data);
+        }
+      }
+    };
+    fetchProfile();
+  }, [user, getToken]);
+  // --- END OF NEW LOGIC ---
 
   const adminActions = [
     {
@@ -68,7 +95,6 @@ function ClubAdminDashboard() {
       transition={{ duration: 0.5 }}
       className="space-y-8"
     >
-      {/* --- ADD THE ALERT BANNER COMPONENT HERE --- */}
       <AlertBanner />
 
       <div>
@@ -76,7 +102,8 @@ function ClubAdminDashboard() {
           Club Admin Dashboard
         </h1>
         <p className="mt-2 text-lg text-gray-600">
-          Welcome, {user?.firstName}. Manage your club's presence on CampusConnect.
+          {/* --- THIS IS THE CORRECTED WELCOME MESSAGE --- */}
+          Welcome, {userProfile?.full_name || user?.firstName}. 
         </p>
       </div>
 

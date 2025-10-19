@@ -7,7 +7,7 @@ import heroImage from '../assets/hero-image.jpg';
 import campusOverviewImage from '../assets/campus-overview.jpg';
 
 
-// --- Feature Card with Animations Restored ---
+// --- Feature Card with Border and Shadow ---
 const FeatureCard = ({ icon: Icon, title, description, index }) => {
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -20,9 +20,14 @@ const FeatureCard = ({ icon: Icon, title, description, index }) => {
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true }}
-      whileHover={{ y: -5, boxShadow: "0px 10px 15px -3px rgba(0,0,0,0.1), 0px 4px 6px -2px rgba(0,0,0,0.05)" }}
+      whileHover={{
+        y: -5,
+        boxShadow:
+          "0 10px 20px rgba(0,0,0,0.1), 0 6px 6px rgba(0,0,0,0.05)",
+        borderColor: "rgba(99,102,241,0.4)",
+      }}
       transition={{ ease: "easeInOut", duration: 0.2 }}
-      className="bg-white p-8 rounded-xl shadow-lg h-full"
+      className="bg-white p-8 rounded-xl shadow-md border border-gray-200 h-full transition-all duration-300"
     >
       <div className="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-indigo-600 mb-5">
         <Icon className="h-6 w-6" />
@@ -48,17 +53,15 @@ function HomePage() {
   return (
     <div className="bg-gray-50">
       
-      {/* --- NEW HERO SECTION WITH CORRECT IMAGE DISPLAY --- */}
+      {/* --- HERO SECTION --- */}
       <section className="relative w-full h-[70vh] min-h-[500px] flex items-center justify-center text-center text-white">
         {/* Background Image */}
         <div className="absolute inset-0">
           <img
             src={heroImage}
             alt="Campus Central Library"
-            // The key change: object-cover with specific positioning to keep it centered
             className="w-full h-full object-cover object-center"
           />
-          {/* Dark Overlay */}
           <div className="absolute inset-0 bg-black/60" />
         </div>
 

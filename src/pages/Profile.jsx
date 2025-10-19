@@ -11,16 +11,12 @@ import { SuperAdminProfileFields } from '../components/profile/SuperAdminProfile
 
 const Spinner = () => <Loader2 className="animate-spin h-5 w-5 text-white" />;
 
-// File Input Card component
+// We export this so child components can use it without re-importing.
 export const FileInputCard = ({ id, label, previewUrl, onFileChange }) => (
-    <div className="bg-gray-50 p-4 rounded-lg text-center border border-dashed">
+    <div className="bg-gray-50 p-4 rounded-lg text-center border border-dashed hover:border-indigo-400 transition-colors">
         <label htmlFor={id} className="cursor-pointer flex flex-col items-center">
             {previewUrl ? (
-                <img
-                    src={previewUrl}
-                    alt={`${label} Preview`}
-                    className="w-full h-32 object-contain rounded-md mb-2"
-                />
+                <img src={previewUrl} alt={`${label} Preview`} className="w-full h-32 object-contain rounded-md mb-2" />
             ) : (
                 <div className="w-full h-32 bg-gray-200 rounded-md mb-2 flex items-center justify-center">
                     <Camera className="w-8 h-8 text-gray-400" />
@@ -39,14 +35,8 @@ function ProfilePage() {
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
-        full_name: '',
-        department: '',
-        year: '',
-        contact_info: '',
-        bio: '',
-        avatar_url: '',
-        college_id_url: '',
-        bus_id_url: '',
+        full_name: '', department: '', year: '', contact_info: '',
+        bio: '', avatar_url: '', college_id_url: '', bus_id_url: '',
         roll_no: '',
     });
 
@@ -61,7 +51,6 @@ function ProfilePage() {
     const [busIdPreview, setBusIdPreview] = useState('');
 
     const userRole = user?.publicMetadata?.role;
-
     const departmentOptions = ["CAI", "CSE", "CST", "ECE", "ECT", "MECH", "CIVIL", "AIML", "CDS", "EEE"];
     const yearOptions = [1, 2, 3, 4];
 
@@ -86,7 +75,7 @@ function ProfilePage() {
             setBusIdPreview(sanitized.bus_id_url);
         }
         setLoading(false);
-    }, [user, getToken]);
+    }, [user, getToken]); // Correct dependency array
 
     useEffect(() => {
         loadProfile();
@@ -144,7 +133,6 @@ function ProfilePage() {
         e.preventDefault();
         if (!user) return;
 
-        // ✅ Role-based required fields
         const requiredFieldsByRole = {
             student: ['full_name', 'department', 'year', 'roll_no'],
             club_admin: ['full_name', 'department', 'year', 'roll_no'],
@@ -152,14 +140,12 @@ function ProfilePage() {
             super_admin: ['full_name'],
         };
         const requiredFields = requiredFieldsByRole[userRole] || ['full_name'];
-
         for (const field of requiredFields) {
             if (!formData[field] || formData[field].toString().trim() === '') {
-                toast.error(`Please fill the ${field.replace('_', ' ')} field.`);
+                toast.error(`Please fill the required '${field.replace('_', ' ')}' field.`);
                 return;
             }
         }
-
         setSaving(true);
         const promise = new Promise(async (resolve, reject) => {
             try {
@@ -188,24 +174,6 @@ function ProfilePage() {
                 } else {
                     resolve("Profile updated!");
                     loadProfile();
-
-                    // ✅ Redirect to dashboard after successful profile completion
-                    switch (userRole) {
-                        case 'student':
-                            navigate('/student-dashboard');
-                            break;
-                        case 'hod':
-                            navigate('/hod-dashboard');
-                            break;
-                        case 'club_admin':
-                            navigate('/club-admin-dashboard');
-                            break;
-                        case 'super_admin':
-                            navigate('/super-admin-dashboard');
-                            break;
-                        default:
-                            navigate('/');
-                    }
                 }
             } catch (error) {
                 reject(error);
@@ -218,6 +186,14 @@ function ProfilePage() {
         });
         try {
             await promise;
+            // On success, redirect to the correct dashboard
+            switch (userRole) {
+                case 'student': navigate('/student-dashboard'); break;
+                case 'hod': navigate('/hod-dashboard'); break;
+                case 'club_admin': navigate('/club-admin-dashboard'); break;
+                case 'super_admin': navigate('/super-admin-dashboard'); break;
+                default: navigate('/');
+            }
         } catch (error) {
             console.error("Submit Error:", error);
         } finally {
@@ -253,47 +229,45 @@ function ProfilePage() {
         }
     };
 
-    if (loading) return <div className="text-center mt-12"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>;
+    if (loading) return <div className="text-center mt-20"><Loader2 className="h-10 w-10 animate-spin mx-auto text-indigo-600" /></div>;
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-800 mb-8">Manage Your Profile</h1>
-            <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg">
-                <div className="md:grid md:grid-cols-3 md:gap-8">
-                    <div className="flex flex-col items-center md:items-start">
-                        <img
-                            src={avatarPreview || `https://ui-avatars.com/api/?name=${formData.full_name || 'U'}`}
-                            alt="Avatar"
-                            className="w-40 h-40 rounded-full object-cover mb-4 border-4 border-gray-200"
-                        />
-                        <label
-                            htmlFor="avatar-upload"
-                            className="cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg"
-                        >
-                            Change Photo
-                        </label>
-                        <input
-                            id="avatar-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleFileChange(setAvatarFile, setAvatarPreview)}
-                        />
+        <div className="max-w-6xl mx-auto">
+            <form onSubmit={handleSubmit}>
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div className="p-6 sm:p-10">
+                        <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-6">
+                            <div className="flex flex-col items-center sm:flex-row sm:items-center gap-5">
+                                <motion.div whileHover={{ scale: 1.05 }} className="relative flex-shrink-0">
+                                    {/* Made avatar slightly smaller for better balance */}
+                                    <img
+                                        className="h-24 w-24 sm:h-28 sm:w-28 rounded-full object-cover ring-4 ring-white shadow-md"
+                                        src={avatarPreview || `https://ui-avatars.com/api/?name=${formData.full_name || 'U'}&background=818cf8&color=fff&size=128`}
+                                        alt="Avatar"
+                                    />
+                                    <label htmlFor="avatar-upload" className="absolute -bottom-1 -right-1 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full shadow-md transition-transform hover:scale-110">
+                                        <Camera className="h-5 w-5" />
+                                        <span className="sr-only">Change photo</span>
+                                    </label>
+                                    <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange(setAvatarFile, setAvatarPreview)} />
+                                </motion.div>
+                                <div className="text-center sm:text-left">
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manage Your Profile</h1>
+                                    <p className="text-md text-gray-500 mt-1">Update your photo and personal details.</p>
+                                </div>
+                            </div>
+                            <div className="w-full sm:w-auto">
+                                <motion.button type="submit" disabled={saving} whileHover={{ scale: 1.05 }}
+                                    className="w-full sm:w-auto inline-flex justify-center items-center gap-2 py-2 px-6 rounded-full text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400">
+                                    {saving && <Spinner />}
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </motion.button>
+                            </div>
+                        </div>
+                        <div className="mt-10 pt-8 border-t border-gray-200">
+                            {renderFieldsByRole()}
+                        </div>
                     </div>
-                    <div className="md:col-span-2 mt-8 md:mt-0">
-                        {renderFieldsByRole()}
-                    </div>
-                </div>
-                <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end">
-                    <motion.button
-                        type="submit"
-                        disabled={saving}
-                        whileHover={{ scale: 1.05 }}
-                        className="inline-flex justify-center items-center gap-2 py-2 px-6 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
-                    >
-                        {saving && <Spinner />}
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </motion.button>
                 </div>
             </form>
         </div>

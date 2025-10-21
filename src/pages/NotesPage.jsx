@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment, useMemo } from 'react'; // Added useMemo
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import createClerkSupabaseClient from '../supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,10 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Dialog, Transition } from '@headlessui/react';
 import {
-  ArrowLeft, Loader2, UploadCloud, Plus, FileText, Download, Trash2, X, Search // Added Search icon
+  ArrowLeft, Loader2, UploadCloud, Plus, FileText, Download, Trash2, X, Search
 } from 'lucide-react';
 
-// The UploadNoteModal component is unchanged and remains as it was.
+// The UploadNoteModal component is unchanged.
 const UploadNoteModal = ({ isOpen, onClose, onUploadSuccess }) => {
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -71,15 +71,19 @@ function NotesPage() {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // <-- NEW STATE FOR SEARCH
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchNotes = async () => {
     setLoading(true);
     const supabase = await createClerkSupabaseClient(getToken);
+    
+    // --- THIS IS THE MODIFIED QUERY ---
+    // We now select 'full_name' AND 'roll_no' from the joined profile.
     const { data, error } = await supabase
       .from('notes')
-      .select(`*, profile:profiles(full_name)`)
+      .select(`*, profile:profiles(full_name, roll_no)`)
       .order('uploaded_at', { ascending: false });
+    // --- END OF MODIFICATION ---
 
     if (error) {
       toast.error("Failed to load notes.");
@@ -93,19 +97,18 @@ function NotesPage() {
     fetchNotes();
   }, [getToken]);
 
-  // --- NEW LOGIC FOR CLIENT-SIDE FILTERING ---
   const filteredNotes = useMemo(() => {
     if (!searchTerm.trim()) {
-      return notes; // If search is empty, return all notes
+      return notes;
     }
     const lowercasedTerm = searchTerm.toLowerCase();
     return notes.filter(note => 
         note.title.toLowerCase().includes(lowercasedTerm) ||
         note.description?.toLowerCase().includes(lowercasedTerm) ||
-        note.profile?.full_name?.toLowerCase().includes(lowercasedTerm)
+        note.profile?.full_name?.toLowerCase().includes(lowercasedTerm) ||
+        note.profile?.roll_no?.toLowerCase().includes(lowercasedTerm) // Also search by roll number
     );
   }, [notes, searchTerm]);
-  // --- END OF NEW LOGIC ---
 
 
   const handleDelete = async (noteId) => {
@@ -116,7 +119,7 @@ function NotesPage() {
         const { error } = await supabase.from('notes').delete().eq('id', noteId);
         if (error) throw error;
         toast.success('Note deleted!', { id: toastId });
-        setNotes(currentNotes => currentNotes.filter(n => n.id !== noteId)); // Optimistic UI update
+        setNotes(currentNotes => currentNotes.filter(n => n.id !== noteId));
     } catch(error) {
         toast.error(`Failed to delete note: ${error.message}`, { id: toastId });
     }
@@ -148,20 +151,18 @@ function NotesPage() {
           </motion.button>
         </div>
 
-        {/* --- NEW SEARCH BAR UI --- */}
         <div className="relative">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"
-            placeholder="Search by title, description, or uploader..."
+            placeholder="Search by title, description, uploader, or roll no..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full rounded-md border-gray-300 pl-10 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
         </div>
-        {/* --- END OF NEW UI --- */}
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="h-12 w-12 animate-spin text-indigo-600" /></div>
@@ -187,7 +188,14 @@ function NotesPage() {
                       </div>
                       <h3 className="mt-4 text-xl font-bold text-gray-900">{note.title}</h3>
                       <p className="mt-2 text-sm text-gray-600 flex-grow">{note.description}</p>
-                      <p className="text-xs text-gray-500 mt-4">Uploaded by {note.profile?.full_name || 'a user'}</p>
+                      
+                      {/* --- THIS IS THE MODIFIED DISPLAY LOGIC --- */}
+                      <p className="text-xs text-gray-500 mt-4">
+                        Uploaded by {note.profile?.full_name || 'a user'}
+                        {note.profile?.roll_no && ` (${note.profile.roll_no})`}
+                      </p>
+                      {/* --- END OF MODIFICATION --- */}
+
                     </div>
                     <div className="p-6 bg-gray-50 border-t">
                       <h4 className="text-sm font-semibold text-gray-800 mb-2">Attachments ({note.file_urls?.length || 0})</h4>
